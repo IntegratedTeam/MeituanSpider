@@ -97,7 +97,7 @@ class MeituanHotelSpiderSpider(scrapy.Spider):
             'Accept-Encoding': 'gzip, deflate, sdch, br',
             'Accept-Language': 'zh-CN,zh;q=0.8',
             'Connection': 'keep-alive',
-            'Referer': 'https://gupiao.baidu.com/',
+            'Referer': 'http://hotel.meituan.com/',
             'User-Agent': ua
         }
         return headers

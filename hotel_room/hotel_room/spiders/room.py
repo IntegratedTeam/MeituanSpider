@@ -1,20 +1,16 @@
 # -*- coding: utf-8 -*-
 import datetime
-import json
-import random
-
-import re
 
 import MySQLdb
 import scrapy
+from selenium import webdriver
+from bs4 import BeautifulSoup
+from selenium.webdriver.chrome.options import Options
 
-
-class CommentSpider(scrapy.Spider):
-    '''
-    爬取每日更新的评论
-    '''
-    name = 'comment'
-    comment_url = 'http://ihotel.meituan.com/group/v1/poi/comment/'
+class RoomSpider(scrapy.Spider):
+    '''爬取房型信息'''
+    name = 'room'
+    hotel_url = 'http://hotel.meituan.com/'
     user_agent_list = [ \
         "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.1 (KHTML, like Gecko) Chrome/22.0.1207.1 Safari/537.1" \
         "Mozilla/5.0 (X11; CrOS i686 2268.111.0) AppleWebKit/536.11 (KHTML, like Gecko) Chrome/20.0.1132.57 Safari/536.11", \
@@ -38,89 +34,87 @@ class CommentSpider(scrapy.Spider):
     today = datetime.date.today()
     today_param = str(today).replace('-', '')
     tomorrow = today + datetime.timedelta(days=1)
-    yesterday=today-datetime.timedelta(days=1)
 
     def start_requests(self):
         '''
         爬取酒店列表页面，获得酒店id
         :return:
         '''
-        headers = self.get_headers()
-        hotel_ids=self.get_hotel_id()
-        for id in hotel_ids:
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--disable-gpu')
+        driver = webdriver.Chrome(chrome_options=chrome_options)
+        hotel_ids = self.get_hotel_id()
+        for hotel_id in hotel_ids:
             try:
-                url = self.comment_url + '%d?sortType=time&noempty=1&withpic=0&filter=all&limit=100&offset=0' % (
-                        id)
-                yield scrapy.Request(url, callback=self.parse_hotel_comment, headers=headers)
+                url = self.hotel_url + '%s/?ci=%s&co=%s' % (hotel_id, self.today, self.tomorrow)
+                print(url)
+                driver.get(url)
+                html = driver.page_source.encode()
+                room_info=self.get_hotel_room_info(html)
+                self.save_room_info(room_info)
             except:
                 continue
+        driver.close()
 
-    def parse_hotel_comment(self, response):
+    def get_hotel_room_info(self, html):
         '''
-        获得具体的酒店评论信息
-        :param response:
-        :return:
+        获得酒店房型信息
         '''
+        soup = BeautifulSoup(html, 'html.parser')
+        uls = soup.find_all(attrs={'class': 'deal-margin-left hotel-service-info'})
+        type_name = ''
+        type_website = ''
+        type_bathroom = ''
+        type_window = ''
+        type_people_num = 0
+        type_area = ''
+        type_bed = ''
+        room_info = []
 
-        hotel_comment_info = self.get_hotel_comment_info(response)
-        self.save_comment_info(response, hotel_comment_info)
+        hotel_name = soup.find_all(attrs={'class': 'fs26 fc3 pull-left bold'})[0].string
+        print(hotel_name)
 
-    def get_headers(self):
-        '''
-        生成http头，避免反爬机制
-        :return:
-        '''
-        ua = random.choice(self.user_agent_list)  # 随机抽取User-Agent
-        headers = {
-            'Accept-Encoding': 'gzip, deflate, sdch, br',
-            'Accept-Language': 'zh-CN,zh;q=0.8',
-            'Connection': 'keep-alive',
-            'Referer': 'http://hotel.meituan.com/',
-            'User-Agent': ua
-        }
-        return headers
+        for ul in uls:
+            type_name = ul.li.string
+            spans = ul.find_all('span')
 
-    def get_hotel_comment_info(self, response):
-        '''
-        每日更新昨天的酒店评论信息
-        :param response:
-        :return:
-        '''
-        hotel_comment_info = []
-        jsonresponse = json.loads(response.body_as_unicode())
-        feedback = jsonresponse['data']['feedback']
-        for comment in feedback:
-            comment_time = datetime.datetime.strptime(comment['feedbacktime'], "%Y-%m-%d")
-            if(not self.compare_time(comment_time)):
-                continue
-            hotel_name = (comment['shopname']).replace("（","(").replace("）",")")
-            comment_star = comment['score']
-            comment_tag = (";".join(re.findall(r'#.*?#', comment['comment']))).replace("'","")
-            comment_content = (comment['comment']).replace("'","")
-            update_time = self.today
-            comment_info = {'hotel_name': hotel_name, 'comment_star': comment_star, 'comment_time': comment_time,
-                            'comment_tag': comment_tag, 'comment_content': comment_content, 'update_time': update_time}
-            hotel_comment_info.append(comment_info)
-        return hotel_comment_info
+            for i in range(0, len(spans), 2):
+                if (spans[i].string == '上网'):
+                    type_website = spans[i + 1].string
+                if (spans[i].string == '卫浴'):
+                    type_bathroom = spans[i + 1].string
+                if (spans[i].string == '窗户'):
+                    type_window = spans[i + 1].string
+                if (spans[i].string == '可住'):
+                    type_people_num = int((spans[i + 1].string)[:-1])
+                if (spans[i].string == '面积'):
+                    type_area = spans[i + 1].string
+                if (spans[i].string == '床型'):
+                    type_bed = spans[i + 1].string
 
-    def save_comment_info(self, response, hotel_comment_info):
+            type_info = {'hotel_name': hotel_name, 'type_name': type_name, 'type_website': type_website,
+                         'type_bathroom': type_bathroom, 'type_window': type_window, 'type_people_num': type_people_num,
+                         'type_area': type_area, 'type_bed': type_bed}
+            room_info.append(type_info)
+        return room_info
+
+    def save_room_info(self, hotel_room_info):
         '''
-        将酒店评论存到数据库中
-        :param hotel_comment_info:
-        :return:
+        将酒店房型信息存到数据库中
         '''
         conn = MySQLdb.connect(host='rm-bp172z8x1m3m16m0pto.mysql.rds.aliyuncs.com', user='doushen',
                                passwd='greencherry', db='meituan', port=3306, charset="utf8mb4")  # 链接数据库
         cur = conn.cursor()
 
-        for comment_info in hotel_comment_info:
+        for type_info in hotel_room_info:
             cur.execute(
-                "INSERT INTO hotel_comments(hotel_name,comment_star,comment_time,comment_tag,comment_content,update_time) VALUES ('%s',%d,'%s','%s','%s','%s')" % (
-                    comment_info['hotel_name'], comment_info['comment_star'], comment_info['comment_time'],
-                    comment_info['comment_tag'], comment_info['comment_content'], comment_info['update_time']))
+                "INSERT INTO hotel_room(hotel_name,type_name,type_website,type_bathroom,type_window,type_people_num,type_bed,type_area,update_time) VALUES ('%s','%s','%s','%s','%s',%d,,'%s','%s','%s')" % (
+                    type_info['hotel_name'], type_info['type_name'], type_info['type_website'],
+                    type_info['type_bathroom'], type_info['type_window'], type_info['type_people_num'],
+                    type_info['type_bed'], type_info['type_area'], type_info['update_time'],))
 
         conn.commit()
-
         print('ok')
         cur.close()
         conn.close()
@@ -142,14 +136,3 @@ class CommentSpider(scrapy.Spider):
         cur.close()
         conn.close()
         return result
-
-    def compare_time(self,time):
-        '''
-        将输入时间time和昨天的时间作比较，如果和昨天的时间相等就返回ture，否则为false
-        :param time:
-        :return:
-        '''
-        if(self.yesterday==time.date()):
-            return True
-        else:
-            return False

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Scrapy settings for hotel_comment_more project
+# Scrapy settings for hotel_room project
 #
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
@@ -9,29 +9,16 @@
 #     https://doc.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://doc.scrapy.org/en/latest/topics/spider-middleware.html
 
+BOT_NAME = 'hotel_room'
 
-BOT_NAME = 'hotel_comment_more'
+SPIDER_MODULES = ['hotel_room.spiders']
+NEWSPIDER_MODULE = 'hotel_room.spiders'
 
-SPIDER_MODULES = ['hotel_comment_more.spiders']
-NEWSPIDER_MODULE = 'hotel_comment_more.spiders'
-
-IPPOOL=[
-    {"ipaddr":"106.111.45.69:61234"},
-    {"ipaddr":"222.41.154.119:61202"},
-    {"ipaddr":"113.240.226.164:8080"},
-    {"ipaddr":"119.28.194.66:8888"},
-    {"ipaddr":"106.56.102.196:8070"},
-    {"ipaddr":"118.122.92.252:37901"}
-]
-
-DOWNLOADER_MIDDLEWARES = {
-#    'myproxies.middlewares.MyCustomDownloaderMiddleware': 543,
-     'scrapy.contrib.downloadermiddleware.httpproxy.HttpProxyMiddleware':543,
-     'hotel_comment_more.middlewares.HotelCommentMoreSpiderMiddleware':125
-}
+CONCURRENT_REQUESTS = 1
+DOWNLOAD_DELAY = 1
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = 'hotel_comment_more (+http://www.yourdomain.com)'
+#USER_AGENT = 'hotel_room (+http://www.yourdomain.com)'
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
@@ -61,14 +48,14 @@ ROBOTSTXT_OBEY = True
 
 # Enable or disable spider middlewares
 # See https://doc.scrapy.org/en/latest/topics/spider-middleware.html
-# SPIDER_MIDDLEWARES = {
-#    'hotel_comment_more.middlewares.HotelCommentMoreSpiderMiddleware': 543,
-# }
+#SPIDER_MIDDLEWARES = {
+#    'hotel_room.middlewares.HotelRoomSpiderMiddleware': 543,
+#}
 
 # Enable or disable downloader middlewares
 # See https://doc.scrapy.org/en/latest/topics/downloader-middleware.html
 #DOWNLOADER_MIDDLEWARES = {
-#    'hotel_comment_more.middlewares.HotelCommentMoreDownloaderMiddleware': 543,
+#    'hotel_room.middlewares.HotelRoomDownloaderMiddleware': 543,
 #}
 
 # Enable or disable extensions
@@ -80,7 +67,7 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://doc.scrapy.org/en/latest/topics/item-pipeline.html
 #ITEM_PIPELINES = {
-#    'hotel_comment_more.pipelines.HotelCommentMorePipeline': 300,
+#    'hotel_room.pipelines.HotelRoomPipeline': 300,
 #}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
