@@ -21,7 +21,7 @@ class RoomSpider():
 
     def start_requests(self):
         '''
-        爬取酒店列表页面，获得酒店id
+        使用selenium爬取酒店房型信息
         :return:
         '''
         chrome_options = Options()
@@ -39,9 +39,10 @@ class RoomSpider():
                 html = driver.page_source.encode()
                 room_info=self.get_hotel_room_info(html)
                 self.save_room_info(room_info)
-                driver.close()
+                driver.quit()
             except:
                 continue
+
 
     def get_hotel_room_info(self, html):
         '''
@@ -116,6 +117,7 @@ class RoomSpider():
                                                       passwd='greencherry', db='meituan', port=3306,charset="utf8")  # 链接数据库
         cur = conn.cursor()
         cur.execute("SELECT hotel_id from hotel_ids;")
+        # cur.execute("SELECT hotel_id FROM hotel_info WHERE name NOT IN (SELECT hotel_name FROM temp);")
         results = cur.fetchall()
         result = []
         for r in results:
