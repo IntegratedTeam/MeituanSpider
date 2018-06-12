@@ -19,7 +19,8 @@ class GoodsSpider():
     hotel_url = 'http://hotel.meituan.com/'
 
     today = datetime.date.today()
-    today_param = str(today).replace('-', '')
+    today = today + datetime.timedelta(days=3)
+    # today_param = str(today).replace('-', '')
     tomorrow = today + datetime.timedelta(days=1)
 
     def start_requests(self):
@@ -27,12 +28,16 @@ class GoodsSpider():
         使用selenium爬取酒店房间商品信息
         :return:
         '''
-        # chrome_options = Options()
+        options = webdriver.ChromeOptions()
+        options.add_argument('lang=zh_CN.UTF-8')
+        options.add_argument(
+            'user-agent="Mozilla/5.0 (iPod; U; CPU iPhone OS 2_1 like Mac OS X; ja-jp) AppleWebKit/525.18.1 (KHTML, like Gecko) Version/3.1.1 Mobile/5F137 Safari/525.20"')
+
         # chrome_options.add_argument('--headless')
         # chrome_options.add_argument('--disable-gpu')
         # driver = webdriver.Chrome(chrome_options=chrome_options)
 
-        driver = webdriver.Chrome()
+        driver = webdriver.Chrome(chrome_options=options)
 
         hotel_ids = self.get_hotel_id()
         for hotel_id in hotel_ids:
@@ -76,7 +81,11 @@ class GoodsSpider():
                 tds=table.find_all('td')
                 goods_name=tds[0].span.string
                 goods_window=tds[1].string
+                if(goods_window=='None'):
+                    goods_window='无窗户'
                 goods_breakfast=tds[2].string
+                if (goods_breakfast == 'None'):
+                    goods_breakfast='无早餐'
                 cancel=tds[3].span.text
                 cancel=cancel.strip().replace(' ','').replace('\n',';')
                 goods_price=float(tds[5].em.string)
