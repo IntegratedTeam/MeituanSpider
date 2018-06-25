@@ -115,7 +115,7 @@ class CommentSpider(scrapy.Spider):
 
         for comment_info in hotel_comment_info:
             cur.execute(
-                "INSERT INTO hotel_comments(hotel_name,comment_star,comment_time,comment_tag,comment_content,update_time) VALUES ('%s',%d,'%s','%s','%s','%s')" % (
+                "INSERT INTO hotel_comments_more(hotel_name,comment_star,comment_time,comment_tag,comment_content,update_time) VALUES ('%s',%d,'%s','%s','%s','%s')" % (
                     comment_info['hotel_name'], comment_info['comment_star'], comment_info['comment_time'],
                     comment_info['comment_tag'], comment_info['comment_content'], comment_info['update_time']))
 
@@ -134,7 +134,7 @@ class CommentSpider(scrapy.Spider):
                                passwd='greencherry', db='meituan', port=3306, charset="utf8mb4")  # 链接数据库
         cur = conn.cursor()
 
-        cur.execute("SELECT hotel_id from hotel_ids;")
+        cur.execute("SELECT hotel_id from hotel_id;")
         results = cur.fetchall()
         result = []
         for r in results:
@@ -143,13 +143,22 @@ class CommentSpider(scrapy.Spider):
         conn.close()
         return result
 
+
     def compare_time(self,time):
         '''
         将输入时间time和昨天的时间作比较，如果和昨天的时间相等就返回ture，否则为false
         :param time:
         :return:
         '''
-        if(self.yesterday==time.date()):
-            return True
-        else:
-            return False
+        # if(self.yesterday==time.date()):
+        #     return True
+        # else:
+        #     return False
+
+        result=False
+        #判断时间是否为6月
+        t1=datetime.date(2018,6,1)
+        t2=datetime.date(2018,6,30)
+        if(time.date()>=t1 and time.date()<=t2):
+            result=True
+        return  result
